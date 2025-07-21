@@ -1,18 +1,21 @@
 [project]
-name = "corpus-generator"
+name = "iramuteq-preprocessor"
 version = "0.1.0"
-description = "generates corpus using iramuteq specs"
+description = ""
 authors = [
     {name = "Fernanda Garcia Vilela",email = "fegvilela@gmail.com"}
 ]
-license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "unidecode (>=1.4.0,<2.0.0)",
     "pypdf2 (>=3.0.1,<4.0.0)",
-    "pdfminer-six (>=20250506,<20250507)"
+    "pdfminer-six (>=20250506,<20250507)",
+    "click (>=8.2.1,<9.0.0)"
 ]
+
+[tool.poetry]
+packages = [{include = "iramuteq_preprocessor", from = "src"}]
 
 
 [build-system]
