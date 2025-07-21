@@ -225,6 +225,10 @@ def clean_text(text, preserve_accentuation=False):
     """
     Limpa e padroniza o texto com opções avançadas
     """
+    # Substitui enclise por proclise
+    text = enclise_para_proclise(text)
+
+    # Escreve  números por extenso
     text = convert_numbers_to_words(text)
 
     # Substitui hífens entre palavras por underscore
@@ -240,7 +244,13 @@ def clean_text(text, preserve_accentuation=False):
     text = re.sub(r"\s+", " ", text)
     text = re.sub(r"\n+", "\n", text)
 
-    # Remove caracteres especiais (opcional)
+    # Remove caracteres especiais indevidos
+    pattern = (
+        r'[\'"\-\$%\*]|\.{3}'  # Remove aspas, hífen, cifrão, %, *, e reticências (...)
+    )
+    text = re.sub(pattern, "", text)
+
+    # Remove acentuação
     if not preserve_accentuation:
         text = unidecode(text)
 
@@ -248,6 +258,73 @@ def clean_text(text, preserve_accentuation=False):
     text = re.sub(r"^\d+\s+|\s+\d+$", "", text, flags=re.MULTILINE)
 
     return text.strip()
+
+
+def enclise_para_proclise(texto):
+    import re
+
+    padrao = r"(\w+?)(-[mts]e|-l[hoa]|-lhes?|-nos|-vos)(\W|\Z)"
+
+    def ajusta_capitalizacao(texto):
+        # Divide o texto em frases (separadas por .!?)
+        frases = re.split(r"([.!?]\s*)", texto)
+        texto_corrigido = []
+
+        for i, frase in enumerate(frases):
+            if not frase.strip():
+                continue
+
+            # Se a frase começa com pontuação (ex: ". "), a próxima frase é capitalizada
+            if re.match(r"^[.!?]\s*$", frase):
+                texto_corrigido.append(frase)
+                continue
+
+            # Capitaliza a primeira letra da frase e o resto em minúscula
+            frase_corrigida = frase[0].upper() + frase[1:].lower()
+
+            # Preserva maiúsculas em nomes próprios (ex: "Maria" não vira "maria")
+            # (Isso é simplificado; para 100% de precisão, use NLP)
+            palavras = frase_corrigida.split()
+            for j, palavra in enumerate(palavras):
+                if (
+                    j > 0 and palavra.istitle()
+                ):  # Se não é a primeira palavra e parece um nome próprio
+                    palavras[j] = palavra  # Mantém a capitalização (ex: "Maria")
+            frase_corrigida = " ".join(palavras)
+
+            texto_corrigido.append(frase_corrigida)
+
+        return "".join(texto_corrigido)
+
+    def corrige_verbo_para_proclise(verbo):
+        if verbo.endswith(("á", "é", "ê", "í", "ó", "ú")):
+            verbo = verbo[:-1] + "ar"
+        elif verbo.endswith("ê"):
+            verbo = verbo[:-1] + "er"
+        elif verbo.endswith("í"):
+            verbo = verbo[:-1] + "ir"
+        return verbo
+
+    def substituir_pronome(match):
+        verbo = match.group(1)
+        pronome = match.group(2)
+        final = match.group(3)
+
+        pronome_sem_hifen = pronome.replace("-", "")
+
+        if pronome_sem_hifen in ["lo", "la"]:
+            pronome_proclise = pronome_sem_hifen[-1]  # "o" ou "a"
+            verbo = corrige_verbo_para_proclise(verbo)
+        else:
+            pronome_proclise = pronome_sem_hifen
+
+        nova_frase = f"{pronome_proclise} {verbo}{final}"
+
+        return nova_frase
+
+    texto_modificado = re.sub(padrao, substituir_pronome, texto, flags=re.IGNORECASE)
+    texto_modificado = ajusta_capitalizacao(texto_modificado)
+    return texto_modificado
 
 
 def detect_sections(text):
