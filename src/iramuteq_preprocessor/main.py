@@ -3,6 +3,47 @@ import re
 import os
 from unidecode import unidecode
 from collections import defaultdict
+from pathlib import Path
+from datetime import datetime
+
+
+def detect_and_remove_header(pages_text):
+    """
+    Detecta e remove cabeçalhos comuns em todas as páginas
+    Retorna uma lista com os textos das páginas sem os cabeçalhos
+    """
+    if len(pages_text) < 2:
+        return pages_text
+
+    # Pega as primeiras linhas de cada página
+    first_lines = []
+    for page_text in pages_text:
+        lines = page_text.split("\n")
+        if lines:
+            first_lines.append(lines[0].strip())
+
+    # Encontra o prefixo comum entre as primeiras linhas
+    common_prefix = os.path.commonprefix(first_lines)
+    if (
+        len(common_prefix) > 20
+    ):  # Considera como cabeçalho se tiver mais de 20 caracteres
+        header = common_prefix
+    # Verifica se a primeira linha se repete em todas as páginas
+    elif all(line == first_lines[0] for line in first_lines):
+        header = first_lines[0]
+    else:
+        return pages_text
+
+    # Remove o cabeçalho de cada página
+    clean_pages = []
+    for page_text in pages_text:
+        lines = page_text.split("\n")
+        if lines and lines[0].strip() == header:
+            clean_pages.append("\n".join(lines[1:]))
+        else:
+            clean_pages.append(page_text)
+
+    return clean_pages
 
 
 def pdf_to_structured_text(pdf_path):
@@ -28,13 +69,17 @@ def pdf_to_structured_text(pdf_path):
             result["metadata"]["author"] = metadata.get("/Author", "")
             result["metadata"]["subject"] = metadata.get("/Subject", "")
 
-        for page_num, page in enumerate(reader.pages, 1):
-            text = page.extract_text()
+        # Primeiro extrai todo o texto para detectar cabeçalhos comuns
+        all_pages_text = [page.extract_text() for page in reader.pages]
+        clean_pages_text = detect_and_remove_header(all_pages_text)
 
+        for page_num, (page, page_text) in enumerate(
+            zip(reader.pages, clean_pages_text), 1
+        ):
             # Processar a página para identificar elementos
             page_data = {
                 "page_number": page_num,
-                "content": text,
+                "content": page_text,
                 "titles": [],
                 "paragraphs": [],
                 "tables": False,  # Placeholder - análise mais avançada necessária
@@ -42,7 +87,7 @@ def pdf_to_structured_text(pdf_path):
             }
 
             # Identificar títulos (heurística simples - linhas com poucas palavras em caixa alta)
-            lines = text.split("\n")
+            lines = page_text.split("\n")
             for line in lines:
                 clean_line = line.strip()
                 words = clean_line.split()
@@ -53,7 +98,7 @@ def pdf_to_structured_text(pdf_path):
                     result["titles"].append({"text": clean_line, "page": page_num})
 
             # Identificar parágrafos
-            paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+            paragraphs = [p.strip() for p in page_text.split("\n\n") if p.strip()]
             page_data["paragraphs"] = paragraphs
 
             result["pages"].append(page_data)
@@ -423,7 +468,9 @@ def process_pdf_folder(input_folder, output_folder, preserve_accentuation=False)
                 structured_data = pdf_to_structured_text(pdf_path)
 
                 # Nome do arquivo de saída
-                base_name = os.path.splitext(filename)[0]
+                base_name = os.path.splitext(filename)[0] + datetime.now().strftime(
+                    "%Y%m%d%H%M"
+                )
                 output_path = os.path.join(output_folder, f"{base_name}_iramuteq.txt")
 
                 # Preparar corpus
@@ -442,8 +489,12 @@ def process_pdf_folder(input_folder, output_folder, preserve_accentuation=False)
 # Exemplo de uso
 if __name__ == "__main__":
     # Configurações
-    input_pdf_folder = "/Users/fegvilela/Documents/projects/my/iramuteq-preprocessor/pdf_files"  # Pasta com seus PDFs
-    output_text_folder = "/Users/fegvilela/Documents/projects/my/iramuteq-preprocessor/iramuteq_corpus"  # Pasta de saída
+    input_pdf_folder = (
+        Path(__file__).parent.parent.parent / "pdf_files"
+    )  # Pasta com seus PDFs
+    output_text_folder = (
+        Path(__file__).parent.parent.parent / "iramuteq_corpus"
+    )  # Pasta de saída
     preserve_accentuation = False  # Mudar para True para manter acentos
 
     # Processar todos os PDFs na pasta
