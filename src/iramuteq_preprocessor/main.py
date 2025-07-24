@@ -461,7 +461,7 @@ def process_pdf_folder(input_folder, output_folder, preserve_accentuation=False)
     for filename in os.listdir(input_folder):
         if filename.lower().endswith(".pdf"):
             pdf_path = os.path.join(input_folder, filename)
-            print(f"Processando: {filename}")
+            print(f"\n🏃 Processando: {filename}")
 
             try:
                 # Extrair dados estruturados
@@ -481,9 +481,9 @@ def process_pdf_folder(input_folder, output_folder, preserve_accentuation=False)
                     include_metadata=True,
                 )
 
-                print(f"Arquivo preparado: {output_path}")
+                print(f"🗂️ Arquivo preparado: {output_path}")
             except Exception as e:
-                print(f"Erro ao processar {filename}: {str(e)}")
+                print(f"❌ Erro ao processar {filename}: {str(e)}")
 
 
 # Exemplo de uso
@@ -500,4 +500,4 @@ if __name__ == "__main__":
     # Processar todos os PDFs na pasta
     process_pdf_folder(input_pdf_folder, output_text_folder, preserve_accentuation)
 
-    print("\nProcessamento concluído. Os arquivos estão prontos para o IRaMuTeQ.")
+    print("\n 🎉 Processamento concluído. Os arquivos estão prontos para o IRaMuTeQ.")
