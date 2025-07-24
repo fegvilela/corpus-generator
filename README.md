@@ -33,10 +33,10 @@ git clone [URL_DO_REPOSITÓRIO]
 cd iramuteq_preprocessor
 ```
 
-### **2. Crie as pastas de dados** _(opcional)_
+### **2. Crie as pastas de dados** _(opcional - Cria pastas se não existirem)_
 
 ```bash
-mkdir -p pdf_files iramuteq_corpus  # Cria pastas se não existirem
+mkdir -p pdf_files iramuteq_corpus
 ```
 
 ### **3. Instalação automática**
